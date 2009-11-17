@@ -39,10 +39,25 @@ class Queue(object):
         if self._connection:
             self._connection.close()
 
-    def push(self, data):
+    def put(self, data):
         msg = amqp.Message(json.dumps(data))
         self._channel.basic_publish(msg, exchange = self.name)
 
+    def get(self):
+        self._waiting = True
+        self._consumeTag = self._channel.basic_consume(
+            queue = self.name,
+            callback = self._recv_callback)
+        while self._waiting:
+            self._channel.wait()
+        self._channel.basic_cancel(self._consumeTag)
+        return self._message
+
+    def _recv_callback(self, msg):
+        self._message = json.loads(msg.body)
+        self._waiting = False
+
 if __name__ == '__main__':
     q = Queue('test')
-    q.push({'message': 'this is a trial message'})
+    q.put({'message': 'this is a trial message'})
+    print q.get()
