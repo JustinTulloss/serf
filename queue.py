@@ -11,6 +11,10 @@ class Queue(object):
             host = "localhost",
             user = "guest",
             password = "guest"):
+        """
+        Creates a connection to a queue on a given amqp server. If the queue
+        doesn't exist, it creates it.
+        """
 
         self.name = name
 
@@ -40,10 +44,17 @@ class Queue(object):
             self._connection.close()
 
     def put(self, data):
+        """
+        Puts the passed data on the queue. Must be JSON serializable.
+        """
         msg = amqp.Message(json.dumps(data))
         self._channel.basic_publish(msg, exchange = self.name)
 
     def get(self):
+        """
+        This is a blocking "get". Will return a message that is pushed
+        onto this particular queue.
+        """
         self._waiting = True
         self._consumeTag = self._channel.basic_consume(
             queue = self.name,
@@ -58,6 +69,9 @@ class Queue(object):
         self._waiting = False
 
 if __name__ == '__main__':
+    """
+    A sanity check
+    """
     q = Queue('test')
     q.put({'message': 'this is a trial message'})
     print q.get()
